@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <title>Фото з камери</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
- 
+
   <style>
     body {
       margin: 0;
@@ -14,14 +14,14 @@
       text-align: center;
       font-family: Arial, sans-serif;
     }
- 
+
     video, canvas {
       width: 100%;
       max-width: 100%;
     }
- 
+
     button {
-      margin: 15px;
+      margin: 10px;
       padding: 15px 30px;
       font-size: 18px;
       border: none;
@@ -32,45 +32,75 @@
   </style>
 </head>
 <body>
- 
-  <h2>Камера</h2>
- 
-  <!-- Відео з камери -->
-  <video id="video" autoplay playsinline></video>
- 
-  <!-- Кнопка -->
-  <button id="capture">📸 Зробити фото</button>
- 
-  <!-- Фото -->
-  <canvas id="canvas"></canvas>
- 
-  <script>
-    const video = document.getElementById('video');
-    const canvas = document.getElementById('canvas');
-    const button = document.getElementById('capture');
-    const context = canvas.getContext('2d');
- 
-    // Запуск камери
-    navigator.mediaDevices.getUserMedia({
-      video: { facingMode: "environment" }, // основна камера
-      audio: false
-    })
-    .then(stream => {
-      video.srcObject = stream;
-    })
-    .catch(err => {
-      alert("Не вдалося отримати доступ до камери");
-      console.error(err);
-    });
- 
-    // Зробити фото
-    button.addEventListener('click', () => {
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      context.drawImage(video, 0, 0);
-    });
-  </script>
- 
+
+<h2>Камера</h2>
+
+<video id="video" autoplay playsinline></video>
+
+<button id="capture">📸 Зробити фото</button>
+<button id="save">💾 Зберегти фото</button>
+
+<canvas id="canvas"></canvas>
+
+<script>
+const video = document.getElementById('video');
+const canvas = document.getElementById('canvas');
+const captureBtn = document.getElementById('capture');
+const saveBtn = document.getElementById('save');
+const ctx = canvas.getContext('2d');
+
+// Камера
+navigator.mediaDevices.getUserMedia({
+  video: { facingMode: "environment" },
+  audio: false
+})
+.then(stream => video.srcObject = stream)
+.catch(() => alert("Немає доступу до камери"));
+
+// Фото
+captureBtn.onclick = () => {
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  ctx.drawImage(video, 0, 0);
+};
+
+// Збереження
+saveBtn.onclick = async () => {
+
+  if (!canvas.width) {
+    alert("Спочатку зроби фото");
+    return;
+  }
+
+  const folderName = prompt("Введи назву папки:");
+  if (!folderName) return;
+
+  try {
+    // вибір батьківської папки
+    const rootDir = await window.showDirectoryPicker();
+
+    // створення підпапки
+    const photoDir = await rootDir.getDirectoryHandle(folderName, { create: true });
+
+    // імʼя файлу
+    const fileName = `photo_${Date.now()}.png`;
+    const fileHandle = await photoDir.getFileHandle(fileName, { create: true });
+
+    const writable = await fileHandle.createWritable();
+
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+
+    await writable.write(blob);
+    await writable.close();
+
+    alert("Фото збережено ✅");
+
+  } catch (e) {
+    console.error(e);
+    alert("Скасовано або браузер не підтримує");
+  }
+};
+</script>
+
 </body>
 </html>
- 
